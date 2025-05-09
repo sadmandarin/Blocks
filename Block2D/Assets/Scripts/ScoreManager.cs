@@ -4,10 +4,11 @@ using UnityEngine;
 public class ScoreManager : MonoBehaviour
 {
     public static ScoreManager Instance {  get; private set; }
-    public static bool SsInstanceExist => Instance != null;
+    public static bool IsInstanceExist => Instance != null;
 
     private int _score = 0;
     private float _multiplayer;
+    private int _scoreAmount = 50;
 
     public int Score => _score;
 
@@ -26,14 +27,32 @@ public class ScoreManager : MonoBehaviour
 
     }
 
-    private void Start()
+    private void OnEnable()
     {
-        IncreaseScore(0);
+        GameManager.OnGameRestarted += ResetScore;
+        FieldBuilderAndFigurePlacer.OnNeedToAddExp += IncreaseScore;
     }
 
-    public void IncreaseScore(int scoreAmount)
+    private void OnDisable()
     {
-        _score += scoreAmount;
+        GameManager.OnGameRestarted -= ResetScore;
+        FieldBuilderAndFigurePlacer.OnNeedToAddExp -= IncreaseScore;
+    }
+
+    private void Start()
+    {
+        ResetScore();
+    }
+
+    public void IncreaseScore()
+    {
+        _score += _scoreAmount;
+        OnScoreChanged?.Invoke(_score);
+    }
+
+    private void ResetScore()
+    {
+        _score = 0;
         OnScoreChanged?.Invoke(_score);
     }
 }

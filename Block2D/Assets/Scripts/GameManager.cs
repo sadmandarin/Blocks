@@ -1,175 +1,92 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.UI;
-using static UnityEngine.GraphicsBuffer;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
     public static bool IsInstanceExist => Instance != null;
 
-    [SerializeField] private RectTransform _layout;
-    [SerializeField] private GameFieldCell _cell;
-    [SerializeField] private int _fieldWidth;
-    [SerializeField] private int _fieldHeight;
-
+    private PlayerData _playerData;
     private bool _readyToGame = false;
-    private GameFieldCell[,] _gameField;
-    private List<GameFieldCell> _placementCells = new();
+    private States _currentGameState;
 
+    public enum States
+    {
+        Preparing,
+        Playing,
+        Lost,
+        Restart
+    }
+
+    public States CurrentGameState => _currentGameState;
     public bool ReadyToGame => _readyToGame;
-    public List<GameFieldCell> PlacementCells => _placementCells;
+    public PlayerData PlayerData => _playerData;
+
+
+    public static event Action OnGameLost;
+    public static event Action OnGameRestarted;
     private void Awake()
     {
+        SetGameState(States.Preparing);
+
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
 
+        _playerData = new PlayerData();
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
 
-    private IEnumerator Start()
+
+    private void RestartGame()
     {
-        _gameField = new GameFieldCell[_fieldWidth, _fieldHeight];
-        for (int i = 0; i < _fieldWidth; i++)
-        {
-            for (int j = 0; j < _fieldHeight; j++)
-            {
-                var cell = Instantiate(_cell, _layout);
-                cell.SetIndexes(i, j);
-                _gameField[i, j] = cell;
-            }
-            yield return new WaitForSeconds(0.1f);
-        }
-        _readyToGame = true;
+        OnGameRestarted?.Invoke();
     }
 
-    public void ClearPlacementPlacesList() => _placementCells.Clear();
-
-    public void GetClosestCell(FigureCell figureCell, List<FigureCell> figureCells)
+    private void SetHighScore()
     {
-        float maxDistance = 50f;
-        float closestSqrDistance = float.MaxValue;
-        _placementCells = new();
-        _placementCells.Clear();
-        List<GameFieldCell> bestPlacement = null;
-
-        // Получаем экранную позицию якорной фигуры
-        Vector2 figureScreenPos = RectTransformUtility.WorldToScreenPoint(Camera.main, figureCell.RectTransform.position);
-
-        foreach (var cell in _gameField)
+        if (_playerData.highScore < ScoreManager.Instance.Score)
         {
-            Vector2 cellScreenPos = RectTransformUtility.WorldToScreenPoint(Camera.main, cell.RectTransform.position); // <=== Добавь RectTransform в GameFieldCell
-            float sqrDistance = (figureScreenPos - cellScreenPos).sqrMagnitude;
-
-            if (sqrDistance < maxDistance * maxDistance && !cell.IsFilled)
-            {
-                if (CheckIfCanPlaceAllFigure(cell, figureCells, out _placementCells))
-                {
-                    if (sqrDistance < closestSqrDistance)
-                    {
-                        closestSqrDistance = sqrDistance;
-                        bestPlacement = _placementCells;
-                    }
-                }
-            }
-        }
-
-        ClearAllPreviews();
-
-        if (bestPlacement != null)
-        {
-            foreach (var cell in bestPlacement)
-            {
-                cell.PreviewField(figureCell.Color);
-            }
+            _playerData.highScore = ScoreManager.Instance.Score;
         }
     }
 
-    public void ClearAllPreviews()
+    private void GameLost()
     {
-        foreach (var cell in _gameField)
-        {
-            cell.ClearField();
-        }
+        SetHighScore();
+        OnGameLost?.Invoke();
     }
 
-    private bool CheckIfCanPlaceAllFigure(GameFieldCell fieldCell, List<FigureCell> figureCells, out List<GameFieldCell> placementFieldCell)
+
+    public void SetGameState(States state)
     {
-        var tempPlacement = new List<GameFieldCell>();
-        int fieldWidth = _fieldWidth;
-        int fieldHeight = _fieldHeight;
-
-        // Добавляем якорную клетку
-        if (fieldCell.IsFilled)
+        switch (state)
         {
-            placementFieldCell = null;
-            return false;
-        }
-
-        tempPlacement.Add(fieldCell);
-
-        foreach (var cell in figureCells)
-        {
-            int targetX = fieldCell.RowIndex + cell.RowIndex;     // cell.RowIndex - уже смещение (например -1, 0)
-            int targetY = fieldCell.ColumnIndex + cell.ColumnIndex;
-
-            // Проверка на выход за пределы
-            if (targetX < 0 || targetX >= fieldWidth || targetY < 0 || targetY >= fieldHeight)
-            {
-                placementFieldCell = null;
-                return false;
-            }
-
-            GameFieldCell targetCell = _gameField[targetX, targetY];
-
-            // Проверка занятости
-            if (targetCell.IsFilled)
-            {
-                placementFieldCell = null;
-                return false;
-            }
-
-            tempPlacement.Add(targetCell);
-        }
-        placementFieldCell = tempPlacement;
-        return true;
-    }
-
-    public void CheckIfCompleteRowOrColumn()
-    {
-        for (int y = 0; y < _fieldHeight; y++)
-        {
-            if (Enumerable.Range(0, _fieldWidth).All(x => _gameField[x, y].IsFilled))
-                CompleteColumn(y);
-        }
-
-        for (int x = 0; x < _fieldWidth; x++)
-        {
-            if (Enumerable.Range(0, _fieldHeight).All(y => _gameField[x, y].IsFilled))
-                CompleteRow(x);
+            case States.Preparing:
+                break;
+            case States.Playing:
+                _readyToGame = true;
+                break;
+            case States.Lost:
+                GameLost();
+                break;
+            case States.Restart:
+                RestartGame();
+                break;
         }
     }
+}
 
-    private void CompleteRow(int rowIndex)
-    {
-        for (int i = 0; i < _fieldHeight; i++)
-            _gameField[rowIndex, i].CompleteField();
-        
-        ScoreManager.Instance.IncreaseScore(50);
-    }
-
-    private void CompleteColumn(int columnIndex)
-    {
-        for (int i = 0; i < _fieldWidth; i++)
-            _gameField[i, columnIndex].CompleteField();
-        
-        ScoreManager.Instance.IncreaseScore(50);
-    }
+[System.Serializable]
+public class PlayerData
+{
+    public int highScore = 0;
 }

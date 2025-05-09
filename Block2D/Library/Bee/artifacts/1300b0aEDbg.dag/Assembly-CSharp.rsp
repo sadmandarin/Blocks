@@ -446,13 +446,18 @@
 -analyzer:"C:/Program Files/Unity/Hub/Editor/6000.0.27f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.Properties.SourceGenerator.dll"
 -analyzer:"C:/Program Files/Unity/Hub/Editor/6000.0.27f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.SourceGenerators.dll"
 -analyzer:"C:/Program Files/Unity/Hub/Editor/6000.0.27f1/Editor/Data/Tools/Unity.SourceGenerators/Unity.UIToolkit.SourceGenerator.dll"
+"Assets/Scripts/FieldBuilderAndFigurePlacer.cs"
 "Assets/Scripts/FigureCell.cs"
 "Assets/Scripts/FigureDragAndDrop.cs"
+"Assets/Scripts/FiguresStorage.cs"
 "Assets/Scripts/GameFieldCell.cs"
+"Assets/Scripts/GameLostWindow.cs"
 "Assets/Scripts/GameManager.cs"
 "Assets/Scripts/ScoreManager.cs"
 "Assets/Scripts/ScoreView.cs"
 "Assets/Scripts/SettingsButton.cs"
+"Assets/Scripts/SpawnPoint.cs"
+"Assets/Scripts/UIManager.cs"
 -langversion:9.0
 /deterministic
 /optimize-

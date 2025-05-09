@@ -9,7 +9,6 @@ public class FigureCell : MonoBehaviour
 
     private RectTransform _rectTransform;
     private Color _color;
-
     public RectTransform RectTransform => _rectTransform;
     public int RowIndex => _rowIndex;
     public int ColumnIndex => _columnIndex;

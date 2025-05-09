@@ -18,7 +18,7 @@ public class GameFieldCell : MonoBehaviour
     public bool IsFilled => _isFilled;
     public RectTransform RectTransform => _rectTransform;
 
-    public void SetIndexes(int rowIndex, int heightIndex)
+    public void Init(int rowIndex, int heightIndex)
     {
         _rowIndex = rowIndex;
         _columnIndex = heightIndex;
